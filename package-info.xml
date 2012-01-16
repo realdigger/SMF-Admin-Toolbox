@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE package-info SYSTEM "http://www.simplemachines.org/xml/package-info">
+<package-info xmlns="http://www.simplemachines.org/xml/package-info" xmlns:smf="http://www.simplemachines.org/">
+	<id>spuds:AdminToolboxMod</id>
+	<name>Admin Toolbox</name>
+	<version>1.0</version>
+	<type>modification</type>
+
+	<install for="2.0 - 2.0.99">
+		<readme type="file" parsebbc="true">install-readme.txt</readme>
+		<require-file name="AdminToolbox.php" destination="$sourcedir">Our Admin Toolbox Functions</require-file>
+		<require-file name="AdminToolboxHooks.php" destination="$sourcedir">Our Admin Toolbox Hooks</require-file>
+		<require-file name="toolbox.js" destination="$themedir/scripts">Javascript for member selection</require-file>
+		<require-file name="AdminToolbox.template.php" destination="$themedir">The templates</require-file>
+		<require-file name="AdminToolbox.english.php" destination="$themedir/languages">Language file</require-file>
+		<require-file name="toolbox.gif" destination="$imagesdir/admin">The icon</require-file>
+		<modification>language.xml</modification>
+		<modification>language-utf8.xml</modification>
+		<code type="file">add_remove_hooks.php</code>
+		<redirect url="index.php?action=admin;area=toolbox" timeout="5000">redirect.txt</redirect>
+	</install>
+	
+	<uninstall for="2.0 - 2.0.99">
+		<code type="file">add_remove_hooks.php</code>
+		<remove-file name="$sourcedir/AdminToolbox.php" />
+		<remove-file name="$sourcedir/AdminToolboxHooks.php" />
+		<remove-file name="$themedir/scripts/toolbox.js" />
+		<remove-file name="$themedir/AdminToolbox.template.php" />
+		<remove-file name="$themedir/languages/AdminToolbox.english.php" />
+		<modification type="file" reverse="true">language.xml</modification>
+		<modification type="file" reverse="true">language-utf8.xml</modification>
+	</uninstall>
+
+</package-info>

@@ -1,0 +1,15 @@
+Admin Toolbox Mod
+
+Introduction
+This modification adds several new admin maintenance functions including
+	=> Recalculates user post counts
+	=> Merge two users in to a single ID
+	=> Mark inactive users as read all posts
+	=> Rebuild Stats
+
+
+This mod is compatible with SMF 2.0 Only.
+
+Changelog:
+1.0 - 15 Jan 2012
+Initial Release

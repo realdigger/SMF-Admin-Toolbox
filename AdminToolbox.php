@@ -122,9 +122,13 @@ function ToolboxRoutine()
 /**
  * RecountAllMemberPosts()
  *
- * Recount all member posts
- * Takes in to account boards that increase post count
- * Takes in to account recycle board
+ * - recounts all posts for members found in the message table
+ * - updates the members post count record in the members talbe
+ * - honors the boards post count flag
+ * - does not count posts in the recyle bin
+ * - zeros post counts for all members with no posts in the message table
+ * - runs as a delayed loop to avoid server overload
+ * - uses the not_done template in Admin.template
  *
  * @return
  */
@@ -211,6 +215,58 @@ function RecountAllMemberPosts()
 		return;
 	}
 
+	// final steps place all members who have posts in the message table in a temp table
+	$createTemporary = $smcFunc['db_query']('', '
+		CREATE TEMPORARY TABLE {db_prefix}tmp_maint_recountposts (
+			id_member mediumint(8) unsigned NOT NULL default {string:string_zero},
+			PRIMARY KEY (id_member)
+		)
+		SELECT m.id_member
+		FROM ({db_prefix}messages AS m,{db_prefix}boards AS b)
+		WHERE m.id_member != {int:zero}
+			AND b.count_posts = {int:zero}
+			AND m.id_board = b.id_board ' . (!empty($modSettings['recycle_enable']) ? '
+			AND b.id_board != {int:recycle}' : '') . '
+		GROUP BY m.id_member',
+		array(
+			'zero' => 0,
+			'string_zero' => '0',
+			'db_error_skip' => true,
+			'recycle' => $modSettings['recycle_board'],
+		)
+	) !== false;
+
+	if ($createTemporary)
+	{
+		// outer join the members table on the temporary table finding all the members that have a post count but *no* posts in the message table
+		$request = $smcFunc['db_query']('', '
+			SELECT mem.id_member, mem.posts
+			FROM {db_prefix}members AS mem
+			LEFT OUTER JOIN {db_prefix}tmp_maint_recountposts AS res
+			ON res.id_member = mem.id_member
+			WHERE res.id_member IS null
+				AND mem.posts != {int:zero}',
+			array(
+				'zero' => 0,
+			)
+		);
+
+		// set the post count to zero for any delinquents we may have found
+		while ($row = $smcFunc['db_fetch_assoc']($request))
+		{
+			$smcFunc['db_query']('', '
+				UPDATE {db_prefix}members
+				SET posts = {int:zero}
+				WHERE id_member = {int:row}',
+				array(
+					'row' => $row['id_member'],
+					'zero' => 0,
+				)
+			);
+		}
+		$smcFunc['db_free_result']($request);
+	}
+
 	// all done
 	unset($_SESSION['total_members']);
 	redirectexit('action=admin;area=toolbox;done=recount');
@@ -221,7 +277,6 @@ function RecountAllMemberPosts()
  *
  * Takes an array of users and recounts just their post totals
  * @param mixed $members
- * @return
  */
 function RecountMemberPosts($members)
 {
@@ -273,7 +328,6 @@ function RecountMemberPosts($members)
  *
  * Mark inactive users as having read everything
  *
- * @return
  */
 function MarkInactiveRead()
 {
@@ -455,7 +509,7 @@ function StatsMakeupData()
 	// Need to be the admin for this operation
 	isAllowedTo('admin_forum');
 
-	// not getting hacky with it are ya bumm?
+	// not getting hacky with it are ya bum?
 	if ($smcFunc['db_title'] !== 'MySQL')
 		redirectexit('action=admin;area=toolbox;');
 
@@ -620,7 +674,6 @@ function linear_regression($x, $y, $power = false)
  * Updates the log activity table with the new counts
  * *mysql only*, others are welcome to port it to other schemas ... some hints
  *  - GROUP BY EXTRACT(YEAR_MONTH FROM needs to be done as two parts, year and then month for PostgreSQL
- *  - FROM_UNIXTIME needs to be changed, there is no from_unixtime in PostgreSQL AFAIK, odd thats used in Profile-View though?
  *  - TIME_TO_SEC needs to be changed
  *  - ON DUPLICATE KEY UPDATE replaced with a loop of inserts and if it fails an update instead or other such missery
  *
@@ -633,6 +686,10 @@ function StatsRecount()
 	// Who's there, oh its just you
 	isAllowedTo('admin_forum');
 	checkSession('request');
+
+	// How did you get here, it implausible !
+	if ($smcFunc['db_title'] !== 'MySQL')
+		redirectexit('action=admin;area=toolbox;');
 
 	// init this pass
 	$inserts = array();
@@ -687,7 +744,7 @@ function StatsRecount()
 		$_SESSION['start_date_str'] = $start_year . '-' . $start_month . '-' . '01';
 		$_SESSION['start_date_int'] = strtotime($_SESSION['start_date_str']);
 
-		// this is the actual start date from which *do* count
+		// this is the actual start date from which we *do* count
 		$_SESSION['original_date_str'] = $start_date;
 		$_SESSION['original_date_int'] = strtotime($start_date);
 		$stats['stat_start_date_int'] = strtotime($stats['stat_start_date']);
@@ -824,7 +881,7 @@ function StatsRecount()
 	foreach ($inserts as $dataRow)
 		$insertRows[] = '(' .  implode(',', $dataRow) . ')';
 
-	// We have data to insert / update ....
+	// We have data now to insert / update ....
 	if (!empty($insertRows))
 	{
 		// Slam-A-Jama, all the inserts and updates in one big chunk, compliments of ON DUPLICATE KEY UPDATE, blissfully mysql only

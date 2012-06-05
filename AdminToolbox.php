@@ -174,21 +174,23 @@ function RecountAllMemberPosts()
 
 	// Lets get a group of members and determine their post counts (from the boards that have posts count enabled of course).
 	$request = $smcFunc['db_query']('', '
-		SELECT m.id_member, COUNT(m.id_member) AS posts
+		SELECT /*!40001 SQL_NO_CACHE */ m.id_member, COUNT(m.id_member) AS posts
 		FROM ({db_prefix}messages AS m, {db_prefix}boards AS b)
-		WHERE m.id_member != 0
-			AND b.count_posts = 0
-			AND m.id_board = b.id_board' . (!empty($modSettings['recycle_enable']) ? ('
-			AND b.id_board != ' . $modSettings['recycle_board']) : '') . '
+		WHERE m.id_member != {int:zero}
+			AND b.count_posts = {int:zero}
+			AND m.id_board = b.id_board' . (!empty($modSettings['recycle_enable']) ? '
+			AND b.id_board != {int:recycle}' : '') . '
 		GROUP BY m.id_member
 		LIMIT {int:start}, {int:number}',
 		array(
+			'zero' => 0,
 			'start' => $_REQUEST['start'],
 			'number' => $increment,
+			'recycle' => $modSettings['recycle_board'],
 		)
 	);
 	$total_rows = $smcFunc['db_num_rows']($request);
-
+	
 	// Update the count for this group
 	while ($row = $smcFunc['db_fetch_assoc']($request))
 	{
@@ -299,10 +301,11 @@ function RecountMemberPosts($members)
 		SELECT m.id_member, COUNT(m.id_member) AS posts
 		FROM ({db_prefix}messages AS m, {db_prefix}boards AS b)
 		WHERE m.id_member IN ({array_int:members})
-			AND b.count_posts = 0
+			AND b.count_posts = {int:zero}
 			AND m.id_board = b.id_board' . (!empty($modSettings['recycle_enable']) ? ('
 			AND b.id_board != ' . $modSettings['recycle_board']) : ''),
 		array(
+			'zero' => 0,
 			'members' => $members,
 		)
 	);
@@ -874,8 +877,7 @@ function StatsRecount()
 		$temp_time = strtotime('+1 day', $start_time);
 	}
 
-	// Purples may not want to look at what I'm doing here, just move along, its all good, nothing to see here :)
-	// All the data has been magically sanitised, while it was built, I hope :P, so create the insert values
+	// All the data has been magically sanitised, while it was built, so create the insert values
 	ksort($inserts);
 	$insertRows = array();
 	foreach ($inserts as $dataRow)

@@ -2,7 +2,7 @@
 [center][size=16pt][b]Admin Toolbox Mod[/b][/size]
 [url=http://custom.simplemachines.org/mods/index.php?action=search;author=11359][b]By Spuds[/b][/url]
 [/center]
-[hr
+[hr]
 
 [color=blue][b][size=12pt][u]License[/u][/size][/b][/color]
 o This Modifications Source Code is subject to the terms of the Mozilla Public License version 2.0 (the "License"). You can obtain a copy of the License at http://mozilla.org/MPL/2.0/.
@@ -20,5 +20,8 @@ This mod is compatible with SMF 2.0 Only.
 Please use the admin toolbox modification thread for support with this modification.
 
 [color=blue][b][size=12pt][u]Changelog[/u][/size][/b][/color]
+[b]1.1 - 8 Jun 2012[/b]
+! fix for duplicate index when merging two members who both received the same PM
+
 [b]1.0 - 14 Jan 2012[/b]
 + Initial Release

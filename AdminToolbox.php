@@ -1174,16 +1174,58 @@ function MergeMembers()
 			)
 		);
 
-		// And now the ones you received
+		// and now what you have recieved ... but a bit more work is required here :(
+		// Get all of the current PMs for these users
+		$request = $smcFunc['db_query']('', '
+			SELECT id_pm, id_member
+			FROM {db_prefix}pm_recipients
+			WHERE id_member = {int:dstid} OR id_member = {int:srcid}',
+			array(
+				'dstid' => $dstid,
+				'srcid' => $srcid,
+			)
+		);
+		while ($row = $smcFunc['db_fetch_assoc']($request))
+			$current_pms[$row['id_member']][] = $row['id_pm'];
+		$smcFunc['db_free_result']($request);
+		
+		// If they don't already have them, they get them, otherwise they loose them
+		$current_dst_pms = isset($current_pms[$dstid]) ? $current_pms[$dstid] : array();
+		$current_src_pms = isset($current_pms[$srcid]) ? $current_pms[$srcid] : array();
+		
+		// all of the src pms that the dst does not have or one they do already have
+		$move_pms = array_diff($current_src_pms, $current_dst_pms); 
+		$remove_pms = array_intersect($current_src_pms, $current_dst_pms);
+		
+		// And now you get the ones you do not already have 
 		$smcFunc['db_query']('', '
 			UPDATE {db_prefix}pm_recipients
 			SET id_member = {int:dstid}
-			WHERE id_member = {int:srcid}',
+			WHERE id_member = {int:srcid}' . (empty($move_pms) ? '' : '
+				AND (FIND_IN_SET(id_pm, {string:move_pms}) != 0)'),
 			array(
 				'dstid' => $dstid,
-				'srcid' => $srcid
+				'srcid' => $srcid,
+				'move_pms' => implode(',', $move_pms),
 			)
 		);
+		
+		// if we are not removing this user, then we need to adjust the pm totals
+		if (empty($_SESSION['deluser']))
+		{
+			// And now remove the ones that were already there
+			$smcFunc['db_query']('', '
+				DELETE FROM {db_prefix}pm_recipients
+				WHERE id_member = {int:srcid}' . (empty($remove_pms) ? '' : '
+					AND (FIND_IN_SET(id_pm, {string:remove_pms}) != 0)'),
+				array(
+					'srcid' => $srcid,
+					'remove_pms' => implode(',', $remove_pms),
+				)
+			);
+			
+			updateMemberData($srcid, array('instant_messages' => 0, 'unread_messages' => 0));
+		}
 	}
 
 	// Some misc things, like Calendar Events, Polls, other 'Lists'

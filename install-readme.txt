@@ -5,7 +5,7 @@
 [hr]
 
 [color=blue][b][size=12pt][u]License[/u][/size][/b][/color]
-o This Modifications Source Code is subject to the terms of the Mozilla Public License version 2.0 (the "License"). You can obtain a copy of the License at http://mozilla.org/MPL/2.0/.
+o This Modifications Source Code is subject to the terms of the Mozilla Public License version 1.1 (the "License"). You can obtain a copy of the License at http://www.mozilla.org/MPL/1.1/.
 
 [color=blue][b][size=12pt][u]Introduction[/u][/size][/b][/color]
 This modification adds several new admin maintenance functions including
